@@ -36,7 +36,7 @@ with st.expander("Open for comments"):
                noise: ''')
    st.latex('''SNR = \sigma_x^2 / \sigma_n^2 ''')
    st.markdown('''or, in deciblels:''')
-   st.latex('''SNR [dB]= 10 \ \log_1_0(\sigma_x^2 / \sigma_n^2) ''')
+   st.latex('''SNR [dB]= 10 \ \log_{10}(\sigma_x^2 / \sigma_n^2) ''')
    st.markdown('''The _SNR_ imposed above is obtained by measuring the power of the input speech, 
                and adding noise with unity power (i.e., 0 dB), multiplied by an amplitude 
                factor $\sigma_n$: ''')
