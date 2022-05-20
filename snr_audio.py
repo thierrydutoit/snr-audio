@@ -23,7 +23,7 @@ signal_plus_noise=signal+noise_ampl
 
 sp_audio(signal_plus_noise,fe)
 
-fig,ax=subplots(figsize=(10,2))
+fig,ax=subplots(figsize=(10,4))
 plot(t,signal_plus_noise);
 xlabel('time [s]')
 title('signal + noise');
