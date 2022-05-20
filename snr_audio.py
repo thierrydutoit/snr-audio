@@ -27,7 +27,7 @@ fig,ax=subplots(figsize=(10,4))
 plot(t,signal_plus_noise);
 xlabel('time [s]')
 title('signal + noise');
-text(0,6,0,75,'SNR [dB]='+str(around(snr,2)),fontsize='xx-large')
+text(0.6,0.75,'SNR [dB]='+str(around(snr,2)),fontsize='xx-large')
 st.pyplot(fig)
 
 with st.expander("Open for comments"):
