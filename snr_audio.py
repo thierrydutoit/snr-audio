@@ -11,6 +11,7 @@ def st_audio(signal, samplerate=44100):
     st.audio(byte_io)
 
 st.title('Signal-to-Noise Ratio (audio)')
+st.markdown('''How noisy is a signal with 40, 30, 20, 10, 0, -10dB SNR? Try it by yourslef.''')
 snr=st.slider('SNR (dB)): ', -10.0, 40.0, 40.0)
 
 signal,fe = soundfile.read('par8.wav')
@@ -24,8 +25,6 @@ SNR_dB=signal_power_dB-noise_power_dB #76dB
 noise_ampl=noise*sqrt(10**((-14.4-snr)/10.0))
 signal_plus_noise=signal+noise_ampl
 
-st_audio(signal_plus_noise,fe)
-
 fig,ax=subplots(figsize=(10,4))
 plot(t,signal_plus_noise);
 xlabel('time [s]')
@@ -33,6 +32,8 @@ title('signal + noise');
 ylim(-2,2)
 text(0.53,1.65,'SNR [dB]='+str(around(snr,2)),fontsize='xx-large')
 st.pyplot(fig)
+
+st_audio(signal_plus_noise,fe)
 
 with st.expander("Open for comments"):
    st.markdown('''SNR is defined as the ratio of the power of a signal to that of the additional 
