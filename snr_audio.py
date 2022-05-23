@@ -4,7 +4,7 @@ from matplotlib.pyplot import *
 import soundfile
 import io
 
-def st_audio(np_array, samplerate=44100):
+def st_audio(signal, samplerate=44100):
     byte_io = io.BytesIO()
     sub = 'FLOAT'  # could be 'PCM_32' or 'FLOAT'
     soundfile.write(byte_io, signal, samplerate, subtype=sub, format='WAV')
