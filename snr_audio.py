@@ -2,10 +2,13 @@ import streamlit as st
 from numpy import *
 from matplotlib.pyplot import *
 import soundfile
+import io
 
-def sp_audio(np_array, samplerate=44100):
-    soundfile.write('temp.wav', np_array/3, samplerate)
-    st.audio('temp.wav')
+def st_audio(np_array, samplerate=44100):
+    byte_io = io.BytesIO()
+    sub = 'FLOAT'  # could be 'PCM_32' or 'FLOAT'
+    soundfile.write(byte_io, signal, samplerate, subtype=sub, format='WAV')
+    st.audio(byte_io)
 
 st.title('Signal-to-Noise Ratio (audio)')
 snr=st.slider('SNR (dB)): ', -10.0, 40.0, 40.0)
@@ -21,7 +24,7 @@ SNR_dB=signal_power_dB-noise_power_dB #76dB
 noise_ampl=noise*sqrt(10**((-14.4-snr)/10.0))
 signal_plus_noise=signal+noise_ampl
 
-sp_audio(signal_plus_noise,fe)
+st_audio(signal_plus_noise,fe)
 
 fig,ax=subplots(figsize=(10,4))
 plot(t,signal_plus_noise);
