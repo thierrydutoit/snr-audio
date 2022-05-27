@@ -11,7 +11,7 @@ def st_audio(signal, samplerate=44100):
     st.audio(byte_io)
 
 st.title('Signal-to-Noise Ratio (audio)')
-st.markdown('''How noisy is a signal with 40, 30, 20, 10, 0, -10dB SNR? Try it by yourslef.''')
+st.markdown('''How noisy is an audio signal with 40, 30, 20, 10, 0, -10dB SNR? Try it by yourself!''')
 snr=st.slider('SNR (dB)): ', -10, 40, 40)
 
 signal,fe = soundfile.read('par8.wav')
