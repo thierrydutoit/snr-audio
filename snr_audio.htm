@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signal-to-Noise Ratio (audio)</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1050px;
+      margin: 30px auto;
+      padding: 0 20px;
+      line-height: 1.45;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 18px 0;
+    }
+    input[type="range"] {
+      width: 320px;
+    }
+    button {
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+    #plot {
+      width: 100%;
+      height: 420px;
+      margin-top: 12px;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      color: #333;
+    }
+    details {
+      margin-top: 18px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .math {
+      font-family: "Times New Roman", serif;
+      font-size: 1.1rem;
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Signal-to-Noise Ratio (audio)</h1>
+  <p>How noisy is an audio signal with 40, 30, 20, 10, 0, -10 dB SNR? Try it by yourself.</p>
+
+  <div id="status">Trying to preload par8.wav...</div>
+
+  <div class="controls">
+    <label for="snrSlider"><strong>SNR (dB):</strong></label>
+    <input id="snrSlider" type="range" min="-10" max="40" value="40" step="1" />
+    <span id="snrValue">40</span>
+    <button id="playBtn" disabled>Play noisy audio</button>
+  </div>
+
+  <div id="plot"></div>
+
+  <details>
+    <summary>Open for comments</summary>
+    <p>SNR is defined as the ratio of the power of a signal to that of the additional noise:</p>
+    <div class="math">SNR = σ<sub>x</sub><sup>2</sup> / σ<sub>n</sub><sup>2</sup></div>
+    <p>or, in decibels:</p>
+    <div class="math">SNR [dB] = 10 log<sub>10</sub>(σ<sub>x</sub><sup>2</sup> / σ<sub>n</sub><sup>2</sup>)</div>
+    <p>
+      The imposed SNR is obtained by measuring the power of the input speech and adding noise
+      with unit variance, scaled to achieve the chosen SNR.
+    </p>
+    <div class="math">σ<sub>n</sub> = √(σ<sub>x</sub><sup>2</sup> / SNR)</div>
+    <p>Noise becomes quickly visible and audible as the SNR decreases.</p>
+  </details>
+
+  <script>
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    let originalSignal = null;
+    let noisySignal = null;
+    let sampleRate = null;
+
+    const statusEl = document.getElementById("status");
+    const snrSlider = document.getElementById("snrSlider");
+    const snrValue = document.getElementById("snrValue");
+    const playBtn = document.getElementById("playBtn");
+
+    function mean(arr) {
+      let s = 0;
+      for (let i = 0; i < arr.length; i++) s += arr[i];
+      return s / arr.length;
+    }
+
+    function variance(arr) {
+      const m = mean(arr);
+      let s = 0;
+      for (let i = 0; i < arr.length; i++) {
+        const d = arr[i] - m;
+        s += d * d;
+      }
+      return s / arr.length;
+    }
+
+    function gaussianRandom() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function generateNoise(length) {
+      const noise = new Float32Array(length);
+      for (let i = 0; i < length; i++) {
+        noise[i] = gaussianRandom();
+      }
+      return noise;
+    }
+
+    function computeNoisySignal(signal, snrDb) {
+      const signalVar = variance(signal);
+      const signalPowerDb = 10 * Math.log10(signalVar);
+
+      const noise = generateNoise(signal.length);
+      const noiseVar = variance(noise);
+      const noisePowerDb = 10 * Math.log10(noiseVar);
+
+      const gain = Math.sqrt(
+        Math.pow(10, ((signalPowerDb - snrDb) - noisePowerDb) / 10)
+      );
+
+      const out = new Float32Array(signal.length);
+      for (let i = 0; i < signal.length; i++) {
+        out[i] = signal[i] + gain * noise[i];
+      }
+      return out;
+    }
+
+    function downsampleForPlot(signal, fs, maxPoints = 12000) {
+      if (signal.length <= maxPoints) {
+        const t = new Array(signal.length);
+        for (let i = 0; i < signal.length; i++) t[i] = i / fs;
+        return { t, y: Array.from(signal) };
+      }
+
+      const step = Math.ceil(signal.length / maxPoints);
+      const t = [];
+      const y = [];
+
+      for (let i = 0; i < signal.length; i += step) {
+        t.push(i / fs);
+        y.push(signal[i]);
+      }
+
+      return { t, y };
+    }
+
+    function plotSignal(signal, fs, snrDb) {
+      const ds = downsampleForPlot(signal, fs);
+
+      Plotly.newPlot(
+        "plot",
+        [{
+          x: ds.t,
+          y: ds.y,
+          type: "scatter",
+          mode: "lines",
+          name: "signal + noise"
+        }],
+        {
+          title: "signal + noise",
+          xaxis: { title: "time [s]" },
+          yaxis: { title: "amplitude", range: [-2, 2] },
+          annotations: [{
+            x: ds.t[Math.floor(ds.t.length * 0.53)] || 0,
+            y: 1.65,
+            text: "SNR [dB] = " + snrDb.toFixed(2),
+            showarrow: false,
+            font: { size: 24 }
+          }],
+          margin: { t: 55 }
+        },
+        { responsive: true }
+      );
+    }
+
+    function playSignal(signal, fs) {
+      const buffer = audioContext.createBuffer(1, signal.length, fs);
+      buffer.copyToChannel(signal, 0);
+
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start();
+    }
+
+    async function loadArrayBuffer(arrayBuffer) {
+      const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      sampleRate = decoded.sampleRate;
+      originalSignal = decoded.getChannelData(0).slice();
+
+      playBtn.disabled = false;
+      updateApp();
+
+      statusEl.textContent =
+        "Loaded: par8.wav | Sample rate: " + sampleRate +
+        " Hz | Samples: " + originalSignal.length;
+    }
+
+    async function preloadDefaultFile() {
+      try {
+        const response = await fetch("par8.wav");
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        await loadArrayBuffer(arrayBuffer);
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent =
+          "Could not preload par8.wav. Open this page through a local web server and make sure par8.wav is in the same folder.";
+      }
+    }
+
+    function updateApp() {
+      if (!originalSignal || !sampleRate) return;
+      const snrDb = Number(snrSlider.value);
+      snrValue.textContent = String(snrDb);
+      noisySignal = computeNoisySignal(originalSignal, snrDb);
+      plotSignal(noisySignal, sampleRate, snrDb);
+    }
+
+    snrSlider.addEventListener("input", updateApp);
+
+    playBtn.addEventListener("click", async () => {
+      if (!noisySignal) return;
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+      playSignal(noisySignal, sampleRate);
+    });
+
+    preloadDefaultFile();
+  </script>
+</body>
+</html>
